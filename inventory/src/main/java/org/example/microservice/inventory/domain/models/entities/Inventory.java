@@ -17,9 +17,13 @@
 package org.example.microservice.inventory.domain.models.entities;
 
 
+import org.bson.types.ObjectId;
+import org.springframework.data.annotation.Id;
+
 import java.time.OffsetDateTime;
 
 public record Inventory(
+				@Id ObjectId id,
 				String pointOfContactId,
 				String distributionCenterId,
 				String serialNumber,

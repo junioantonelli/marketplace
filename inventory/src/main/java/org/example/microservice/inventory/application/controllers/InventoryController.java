@@ -1,25 +1,31 @@
 package org.example.microservice.inventory.application.controllers;
 import org.example.microservice.inventory.domain.logics.converters.ResponseConverter;
+import org.example.microservice.inventory.domain.models.vos.requests.InventoryModificationBodyRequest;
 import org.example.microservice.inventory.domain.models.vos.requests.InventoryParams;
 import org.example.microservice.inventory.domain.models.vos.responses.InventoryResponse;
 import org.example.microservice.inventory.domain.models.vos.responses.InventoryResponseItem;
-import org.example.microservice.inventory.domain.models.vos.requests.InventoryBodyRequest;
+import org.example.microservice.inventory.domain.models.vos.requests.InventoryIngestionBodyRequest;
 import org.example.microservice.inventory.application.services.InventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 @RestController
@@ -28,22 +34,21 @@ public class InventoryController {
 
   private final InventoryService inventoryService;
 
-  private final ResponseConverter responseConverter;
-
   @Autowired
-  public InventoryController(InventoryService inventoryService, ResponseConverter responseConverter) {
+  public InventoryController(InventoryService inventoryService) {
     this.inventoryService = inventoryService;
-    this.responseConverter = responseConverter;
   }
 
   @PostMapping
   public ResponseEntity<InventoryResponseItem> postInventories(
-          @RequestBody final InventoryBodyRequest body){
+          @RequestBody final InventoryIngestionBodyRequest body){
 
     return Stream.of(body)
-            .map(inventoryService::createInventory)
+            .map(inventoryService::ingestInventory)
+            .filter(Objects::nonNull)
             .map((response -> new ResponseEntity<>(response, HttpStatus.OK)))
-            .findFirst().orElse(new ResponseEntity<>(InventoryResponseItem.empty(), HttpStatus.NOT_FOUND));
+            .findFirst()
+            .orElse(new ResponseEntity<>(InventoryResponseItem.empty(), HttpStatus.INTERNAL_SERVER_ERROR));
   }
 
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -55,12 +60,38 @@ public class InventoryController {
   {
 
     var response = Stream.of(InventoryParams.of(sn, poc, from))
-            .flatMap(inventoryService::getInventory)
-            .map(responseConverter::fromInventoryToResponse)
+            .flatMap(param -> inventoryService.retrieveInventory(param).stream())
             .toList();
 
-    return Optional.of(new ResponseEntity<>(new InventoryResponse(response), HttpStatus.OK))
-            .orElse(new ResponseEntity<>(new InventoryResponse(null), HttpStatus.NOT_FOUND));
+    return Optional.of(response)
+            .filter(Predicate.not(CollectionUtils::isEmpty))
+            .map(res -> new ResponseEntity<>(new InventoryResponse(res), HttpStatus.OK))
+            .orElse(new ResponseEntity<>(new InventoryResponse(List.of()), HttpStatus.NOT_FOUND));
+  }
+
+  @PutMapping
+  public ResponseEntity<InventoryResponseItem> putInventories(
+          @RequestBody final InventoryModificationBodyRequest body){
+
+    return Stream.of(body)
+            .map(inventoryService::modifyInventory)
+            .filter(Objects::nonNull)
+            .map((response -> new ResponseEntity<>(response, HttpStatus.OK)))
+            .findFirst()
+            .orElse(new ResponseEntity<>(InventoryResponseItem.empty(), HttpStatus.INTERNAL_SERVER_ERROR));
+  }
+
+  @DeleteMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<InventoryResponse> deleteInventories(
+          @RequestParam final String sn){
+    var response = Stream.of(InventoryParams.of(sn, null, null))
+            .map(inventoryService::removeInventory)
+            .toList();
+
+    return Optional.of(response)
+            .filter(Predicate.not(CollectionUtils::isEmpty))
+            .map(res -> new ResponseEntity<>(new InventoryResponse(res), HttpStatus.OK))
+            .orElse(new ResponseEntity<>(new InventoryResponse(List.of()), HttpStatus.NOT_FOUND));
   }
 
 }
