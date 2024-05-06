@@ -39,7 +39,7 @@ class InventoryComponentTests {
 	@Test
 	@Order(1)
 	void shouldIngestDataSuccessfully(){
-		given()
+				given()
 						.body("""
                     {
                         "serialNumber": "123456789",
@@ -53,9 +53,9 @@ class InventoryComponentTests {
             .then()
             .statusCode(200)
             .and()
-            .body("poc", is("abcd"))
+            .body("[0].sn", is("123456789"))
 						.and()
-						.body("qtt", Matchers.greaterThanOrEqualTo(9));
+						.body("[0].qtt", Matchers.greaterThanOrEqualTo(9));
 	}
 
 	@Test
@@ -70,9 +70,9 @@ class InventoryComponentTests {
             .then()
             .statusCode(200)
             .and()
-            .body("inventoryList[0].poc", is("abcd"))
+            .body("[0].poc", is("abcd"))
 						.and()
-						.body("inventoryList[0].qtt", Matchers.greaterThanOrEqualTo(10));
+						.body("[0].qtt", Matchers.greaterThanOrEqualTo(10));
 	}
 
 	@Test
@@ -87,12 +87,12 @@ class InventoryComponentTests {
                     """)
 						.contentType(MediaType.APPLICATION_JSON_VALUE)
 						.put("/v1/inventory")
-            .then()
+			.then()
             .statusCode(200)
             .and()
-            .body("poc", is("abcd"))
+            .body("[0].poc", is("abcd"))
 						.and()
-						.body("qtt", Matchers.lessThanOrEqualTo(9));
+						.body("[0].qtt", Matchers.lessThanOrEqualTo(9));
 	}
 
 	@Test
@@ -105,9 +105,9 @@ class InventoryComponentTests {
             .then()
             .statusCode(200)
             .and()
-            .body("inventoryList[0].poc", is("abcd"))
+            .body("[0].poc", is("abcd"))
 						.and()
-						.body("inventoryList[0].qtt", Matchers.lessThanOrEqualTo(6));
+						.body("[0].qtt", Matchers.lessThanOrEqualTo(6));
 	}
 
 

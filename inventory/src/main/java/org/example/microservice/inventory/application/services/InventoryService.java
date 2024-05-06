@@ -36,28 +36,30 @@ public class InventoryService {
             .toList();
   }
 
-  public InventoryResponseItem ingestInventory(InventoryIngestionBodyRequest inventoryIngestionBodyRequest) {
+  public Collection<InventoryResponseItem> ingestInventory(InventoryIngestionBodyRequest inventoryIngestionBodyRequest) {
     return Stream.of(inventoryIngestionBodyRequest)
             .map(inventoryBuilder::buildInventory)
             .map(inventoryRepository::insert)
             .map(inventoryBuilder::buildResponse)
-            .findFirst().orElse(null);
+            .toList();
   }
 
-  public InventoryResponseItem modifyInventory(InventoryModificationBodyRequest body) {
+  public Collection<InventoryResponseItem> modifyInventory(InventoryModificationBodyRequest body) {
     return Stream.of(body)
             .map(InventoryModificationBodyRequest::serialNumber)
             .flatMap(sn -> inventoryRepository.findBySerialNumber(sn).stream())
             .map(old -> inventoryBuilder.updateInventory(old, body))
             .map(inventoryRepository::save)
             .map(inventoryBuilder::buildResponse)
-            .findFirst().orElse(null);
+            .toList();
   }
-  public InventoryResponseItem removeInventory(InventoryParams params) {
-    return Stream.of(params)
+  public Collection<InventoryResponseItem> removeInventory(InventoryParams params) {
+    var list = Stream.of(params)
             .flatMap(parameters -> inventoryRepository.findBySerialNumber(parameters.sn()).stream())
-            .map(inventory -> {inventoryRepository.deleteById(inventory.id().toString());return inventory;})
+            .peek(inventory -> inventoryRepository.deleteById(inventory.id().toString()))
             .map(inventoryBuilder::buildResponse)
-            .findFirst().orElse(null);
+            .toList();
+    System.out.printf("logging this list %s", list);
+    return list;
   }
 }

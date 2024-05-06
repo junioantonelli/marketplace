@@ -1,5 +1,4 @@
 package org.example.microservice.inventory.application.controllers;
-import org.example.microservice.inventory.domain.logics.converters.ResponseConverter;
 import org.example.microservice.inventory.domain.models.vos.requests.InventoryModificationBodyRequest;
 import org.example.microservice.inventory.domain.models.vos.requests.InventoryParams;
 import org.example.microservice.inventory.domain.models.vos.responses.InventoryResponse;
@@ -22,9 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -39,20 +36,8 @@ public class InventoryController {
     this.inventoryService = inventoryService;
   }
 
-  @PostMapping
-  public ResponseEntity<InventoryResponseItem> postInventories(
-          @RequestBody final InventoryIngestionBodyRequest body){
-
-    return Stream.of(body)
-            .map(inventoryService::ingestInventory)
-            .filter(Objects::nonNull)
-            .map((response -> new ResponseEntity<>(response, HttpStatus.OK)))
-            .findFirst()
-            .orElse(new ResponseEntity<>(InventoryResponseItem.empty(), HttpStatus.INTERNAL_SERVER_ERROR));
-  }
-
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<InventoryResponse> getInventories(
+  public ResponseEntity getInventories(
           @RequestParam final String sn,
           @RequestParam(required = false) final String poc,
           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -65,12 +50,25 @@ public class InventoryController {
 
     return Optional.of(response)
             .filter(Predicate.not(CollectionUtils::isEmpty))
-            .map(res -> new ResponseEntity<>(new InventoryResponse(res), HttpStatus.OK))
-            .orElse(new ResponseEntity<>(new InventoryResponse(List.of()), HttpStatus.NOT_FOUND));
+            .map(ResponseEntity::ok)
+            .orElse(new ResponseEntity<>(List.of(InventoryResponseItem.empty()), HttpStatus.NOT_FOUND));
+  }
+
+  @PostMapping
+  public ResponseEntity<Collection<InventoryResponseItem>> postInventories(
+          @RequestBody final InventoryIngestionBodyRequest body){
+
+    var a = Stream.of(body)
+            .map(inventoryService::ingestInventory)
+            .filter(Objects::nonNull)
+            .map((response -> new ResponseEntity<>(response, HttpStatus.OK)))
+            .findFirst()
+            .orElse(new ResponseEntity<>(List.of(InventoryResponseItem.empty()), HttpStatus.INTERNAL_SERVER_ERROR));
+    return a;
   }
 
   @PutMapping
-  public ResponseEntity<InventoryResponseItem> putInventories(
+  public ResponseEntity<Collection<InventoryResponseItem>> putInventories(
           @RequestBody final InventoryModificationBodyRequest body){
 
     return Stream.of(body)
@@ -78,20 +76,19 @@ public class InventoryController {
             .filter(Objects::nonNull)
             .map((response -> new ResponseEntity<>(response, HttpStatus.OK)))
             .findFirst()
-            .orElse(new ResponseEntity<>(InventoryResponseItem.empty(), HttpStatus.INTERNAL_SERVER_ERROR));
+            .orElse(new ResponseEntity<>(List.of(InventoryResponseItem.empty()), HttpStatus.INTERNAL_SERVER_ERROR));
   }
 
   @DeleteMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<InventoryResponse> deleteInventories(
+  public ResponseEntity<Collection<InventoryResponseItem>> deleteInventories(
           @RequestParam final String sn){
     var response = Stream.of(InventoryParams.of(sn, null, null))
-            .map(inventoryService::removeInventory)
-            .toList();
+            .map(inventoryService::removeInventory).findFirst();
 
-    return Optional.of(response)
+    return response
             .filter(Predicate.not(CollectionUtils::isEmpty))
-            .map(res -> new ResponseEntity<>(new InventoryResponse(res), HttpStatus.OK))
-            .orElse(new ResponseEntity<>(new InventoryResponse(List.of()), HttpStatus.NOT_FOUND));
+            .map(res -> new ResponseEntity<>(res, HttpStatus.OK))
+            .orElse(new ResponseEntity<>(List.of(new InventoryResponseItem(null,null,null,null)), HttpStatus.NOT_FOUND));
   }
 
 }
