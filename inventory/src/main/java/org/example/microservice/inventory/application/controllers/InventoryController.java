@@ -21,7 +21,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -37,34 +40,31 @@ public class InventoryController {
   }
 
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity getInventories(
+  public ResponseEntity<Collection<InventoryResponseItem>> getInventories(
           @RequestParam final String sn,
           @RequestParam(required = false) final String poc,
           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           final LocalDate from)
   {
 
-    var response = Stream.of(InventoryParams.of(sn, poc, from))
-            .flatMap(param -> inventoryService.retrieveInventory(param).stream())
-            .toList();
-
-    return Optional.of(response)
+    return Stream.of(InventoryParams.of(sn, poc, from))
+            .map(inventoryService::retrieveInventory)
             .filter(Predicate.not(CollectionUtils::isEmpty))
             .map(ResponseEntity::ok)
-            .orElse(new ResponseEntity<>(List.of(InventoryResponseItem.empty()), HttpStatus.NOT_FOUND));
+            .findFirst()
+            .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(List.of()));
   }
 
   @PostMapping
   public ResponseEntity<Collection<InventoryResponseItem>> postInventories(
           @RequestBody final InventoryIngestionBodyRequest body){
 
-    var a = Stream.of(body)
+      return Stream.of(body)
             .map(inventoryService::ingestInventory)
-            .filter(Objects::nonNull)
-            .map((response -> new ResponseEntity<>(response, HttpStatus.OK)))
+            .filter(Predicate.not(CollectionUtils::isEmpty))
+            .map(ResponseEntity::ok)
             .findFirst()
-            .orElse(new ResponseEntity<>(List.of(InventoryResponseItem.empty()), HttpStatus.INTERNAL_SERVER_ERROR));
-    return a;
+            .orElse(ResponseEntity.internalServerError().body(List.of()));
   }
 
   @PutMapping
@@ -73,7 +73,7 @@ public class InventoryController {
 
     return Stream.of(body)
             .map(inventoryService::modifyInventory)
-            .filter(Objects::nonNull)
+            .filter(Predicate.not(CollectionUtils::isEmpty))
             .map((response -> new ResponseEntity<>(response, HttpStatus.OK)))
             .findFirst()
             .orElse(new ResponseEntity<>(List.of(InventoryResponseItem.empty()), HttpStatus.INTERNAL_SERVER_ERROR));
@@ -82,12 +82,12 @@ public class InventoryController {
   @DeleteMapping(produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Collection<InventoryResponseItem>> deleteInventories(
           @RequestParam final String sn){
-    var response = Stream.of(InventoryParams.of(sn, null, null))
-            .map(inventoryService::removeInventory).findFirst();
 
-    return response
+    return Stream.of(InventoryParams.of(sn, null, null))
+            .map(inventoryService::removeInventory)
             .filter(Predicate.not(CollectionUtils::isEmpty))
-            .map(res -> new ResponseEntity<>(res, HttpStatus.OK))
+            .map(ResponseEntity::ok)
+            .findFirst()
             .orElse(new ResponseEntity<>(List.of(new InventoryResponseItem(null,null,null,null)), HttpStatus.NOT_FOUND));
   }
 
