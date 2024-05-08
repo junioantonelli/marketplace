@@ -12,16 +12,14 @@ public class InventoryWritingConverter implements Converter<Inventory, Document>
     @Override
     public Document convert(Inventory inventory) {
         Document doc = new Document();
+
         if (Objects.nonNull(inventory.id()))
             doc.append("_id", inventory.id());
         doc.append("pointOfContactId", inventory.pointOfContactId());
         doc.append("distributionCenterId", inventory.distributionCenterId());
         doc.append("serialNumber", inventory.serialNumber());
         doc.append("quantity", inventory.quantity());
-        if (Objects.nonNull(inventory.creationDate()))
-            doc.append("creationDate", Date.from(inventory.creationDate().toInstant()));
-        else
-            doc.append("creationDate", new Date());
+        doc.append("creationDate", Date.from(inventory.creationDate().toInstant()));
         doc.append("lastUpdate", new Date());
 
         return doc;
