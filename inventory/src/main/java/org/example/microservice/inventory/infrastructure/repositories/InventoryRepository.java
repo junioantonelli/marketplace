@@ -25,3 +25,4 @@ public interface InventoryRepository extends MongoRepository<Inventory, String> 
   List<Inventory> findBySerialNumber(String sn);
 
 }
+

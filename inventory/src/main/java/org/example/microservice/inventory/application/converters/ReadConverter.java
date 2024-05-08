@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 
-@ReadingConverter
+//@ReadingConverter
 public final class ReadConverter
         implements Converter<Date, OffsetDateTime> {
 

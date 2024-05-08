@@ -1,6 +1,7 @@
 package org.example.microservice.inventory.application.configs;
 
-import org.example.microservice.inventory.application.converters.ReadConverter;
+import org.example.microservice.inventory.application.converters.InventoryReadingConverter;
+import org.example.microservice.inventory.application.converters.InventoryWritingConverter;
 import org.example.microservice.inventory.application.converters.WriteConverter;
 import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,6 @@ public class MongoConfig {
   public MongoCustomConversions customConversions() {
     return new MongoCustomConversions(
             List.of(
-                    new ReadConverter(), new WriteConverter()));
+                    new InventoryReadingConverter(), new InventoryWritingConverter()));
   }
 }
