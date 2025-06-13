@@ -5,5 +5,4 @@ spring:
     name: inventory
   data:
     mongodb:
-      uri: mongodb://localhost:27017
-      database: Inventory
+      uri: mongodb://admin:admin@localhost:27017/Inventory?authSource=admin
